@@ -1,0 +1,10 @@
+[package]
+name = "piadazip"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+[[bin]]
+name = "piadazip"
+path = "src/main.rs"

@@ -18,27 +18,32 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             binary: piadazip
+            release_binary: piadazip-linux-x86_64
             archive: piadazip-linux-x86_64.tar.gz
 
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             binary: piadazip
+            release_binary: piadazip-linux-aarch64
             archive: piadazip-linux-aarch64.tar.gz
             use_cross: true
 
           - os: macos-latest
             target: aarch64-apple-darwin
             binary: piadazip
+            release_binary: piadazip-macos-aarch64
             archive: piadazip-macos-aarch64.tar.gz
 
           - os: macos-latest
             target: x86_64-apple-darwin
             binary: piadazip
+            release_binary: piadazip-macos-x86_64
             archive: piadazip-macos-x86_64.tar.gz
 
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary: piadazip.exe
+            release_binary: piadazip-windows-x86_64.exe
             archive: piadazip-windows-x86_64.zip
 
     steps:
@@ -64,6 +69,10 @@ jobs:
             cargo build --release --target ${{ matrix.target }}
           fi
 
+      - name: Prepare release binary
+        shell: bash
+        run: cp target/${{ matrix.target }}/release/${{ matrix.binary }} ${{ matrix.release_binary }}
+
       - name: Package (Unix)
         if: runner.os != 'Windows'
         run: |
@@ -76,11 +85,17 @@ jobs:
           cd target\${{ matrix.target }}\release
           Compress-Archive -Path ${{ matrix.binary }} -DestinationPath "$env:GITHUB_WORKSPACE\${{ matrix.archive }}"
 
-      - name: Upload artifact
+      - name: Upload archive artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.archive }}
           path: ${{ matrix.archive }}
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bin-${{ matrix.release_binary }}
+          path: ${{ matrix.release_binary }}
 
   release:
     name: Create release
@@ -93,7 +108,9 @@ jobs:
 
       - name: Generate checksums
         run: |
-          sha256sum piadazip-*.tar.gz piadazip-*.zip > SHA256SUMS.txt
+          sha256sum piadazip-*.tar.gz piadazip-*.zip \
+            piadazip-linux-* piadazip-macos-* piadazip-windows-*.exe \
+            > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Publish release
@@ -102,5 +119,10 @@ jobs:
           files: |
             piadazip-*.tar.gz
             piadazip-*.zip
+            piadazip-linux-x86_64
+            piadazip-linux-aarch64
+            piadazip-macos-x86_64
+            piadazip-macos-aarch64
+            piadazip-windows-x86_64.exe
             SHA256SUMS.txt
           generate_release_notes: true

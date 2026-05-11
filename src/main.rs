@@ -3,6 +3,7 @@ mod compress;
 mod crc32;
 mod huffman;
 mod lzss;
+mod update;
 
 use std::process;
 
@@ -21,7 +22,8 @@ fn help_global() {
     println!("  info             Mostra statistiche dell'archivio");
     println!("  test             Verifica l'integrità (CRC32)");
     println!("  compress         Comprimi un singolo file → file.piadina");
-    println!("  decompress       Decomprimi un singolo file\n");
+    println!("  decompress       Decomprimi un singolo file");
+    println!("  update           Aggiorna piadazip all'ultima versione\n");
     println!("  piadazip <comando> --help   Aiuto specifico per un comando\n");
     println!("ESEMPI:");
     println!("  piadazip create backup.piadina src/ README.md --level 6");
@@ -196,6 +198,10 @@ fn run() -> std::io::Result<()> {
             let file = &rest[0];
             let dest = flag_value(rest, "-C");
             archive::cmd_decompress_file(file, dest)?;
+        }
+
+        "update" => {
+            update::cmd_update()?;
         }
 
         _ => {

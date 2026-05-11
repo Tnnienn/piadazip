@@ -1,0 +1,157 @@
+.TH PIADAZIP 1 "2026" "piadazip 0.1.0" "Comandi utente"
+.SH NOME
+piadazip \- archiver e compressore con formato .piadina
+.SH SINOSSI
+.B piadazip
+.I comando
+.RI [ opzioni ]
+.RI [ argomenti ]
+.SH DESCRIZIONE
+.B piadazip
+è un archiver e compressore a linea di comando che produce file con estensione
+.BR .piadina .
+Utilizza una pipeline di compressione in due stadi:
+.B LZSS
+(Lempel-Ziv-Storer-Szymanski) con finestra scorrevole seguito da
+.B codifica di Huffman
+adattiva per ottenere rapporti di compressione paragonabili a gzip.
+
+Il formato supporta la compressione di file singoli, cartelle ricorsive e
+archivi multi-file con metadati (permessi Unix, timestamp, checksum CRC32).
+.SH COMANDI
+.TP
+.BR create " | " c
+Crea un archivio da uno o più file e cartelle.
+
+.in +4n
+.B piadazip create
+.I archivio.piadina
+.IR sorgente ...
+.RB [ --level
+.IR 1-9 ]
+.RB [ -v ]
+.in
+
+.TP
+.BR extract " | " x
+Estrae il contenuto di un archivio.
+
+.in +4n
+.B piadazip extract
+.I archivio.piadina
+.RB [ -C
+.IR destinazione ]
+.RB [ -v ]
+.in
+
+.TP
+.BR list " | " l " | " t
+Elenca il contenuto dell'archivio con dimensioni e ratio di compressione.
+
+.TP
+.B info
+Mostra statistiche riassuntive dell'archivio (versione, numero di file, dimensioni totali).
+
+.TP
+.B test
+Verifica l'integrità dell'archivio decomprimendo ogni file e confrontando il checksum CRC32. Esce con codice 1 se uno o più file sono corrotti.
+
+.TP
+.B compress
+Comprimi un singolo file, producendo
+.IR file .piadina
+nella stessa directory.
+
+.in +4n
+.B piadazip compress
+.I file
+.RB [ --level
+.IR 1-9 ]
+.in
+
+.TP
+.B decompress
+Decomprimi un archivio mono-file nella directory corrente (o in quella specificata con
+.BR -C ).
+
+.in +4n
+.B piadazip decompress
+.I file.piadina
+.RB [ -C
+.IR destinazione ]
+.in
+
+.SH OPZIONI
+.TP
+.BR --level " " \fIN\fR ", " \fI-N\fR
+Livello di compressione da 1 (veloce, ratio peggiore) a 9 (lento, ratio migliore).
+Default: 6. La forma corta
+.B -6
+è analoga a gzip.
+.TP
+.BR --verbose ", " -v
+Mostra ogni file aggiunto o estratto con il relativo ratio di compressione.
+.TP
+.BR -C " " \fIdir\fR
+Directory di destinazione per l'estrazione. Viene creata se non esiste.
+.TP
+.BR --help ", " -h
+Mostra l'aiuto. Può essere usato anche dopo un comando specifico:
+.B piadazip create --help
+.SH ESEMPI
+Creare un archivio da una cartella con livello massimo:
+.PP
+.in +4n
+.B piadazip create backup.piadina ~/documenti/ --level 9
+.in
+.PP
+Estrarre in una directory specifica con output verboso:
+.PP
+.in +4n
+.B piadazip extract backup.piadina -C /tmp/ripristino -v
+.in
+.PP
+Visualizzare il contenuto con ratio per file:
+.PP
+.in +4n
+.B piadazip list backup.piadina
+.in
+.PP
+Verificare l'integrità prima di estrarre:
+.PP
+.in +4n
+.B piadazip test backup.piadina && piadazip extract backup.piadina
+.in
+.PP
+Comprimere un singolo file come gzip:
+.PP
+.in +4n
+.B piadazip compress database.sql --level 9
+.in
+.SH FORMATO
+Il formato
+.B .piadina
+(versione 3) è strutturato come segue:
+.PP
+.nf
+  Header:  magic(8) + version(1) + n_entries(4) + flags(4)
+  Index:   per ogni entry: path, tipo, mode, mtime, offset, size, crc32
+  Payload: blob compressi concatenati (uno per file)
+.fi
+.PP
+Ogni blob usa la pipeline LZSS→Huffman. File già compressi (JPEG, ZIP, ecc.)
+vengono archiviati senza ulteriore compressione (store) quando il ratio supera
+il 95%. Il formato usa offset assoluti nell'indice, permettendo l'estrazione
+di un singolo file senza caricare l'intero archivio in memoria.
+.SH INSTALLAZIONE DELLA PAGINA MAN
+.nf
+sudo install -m644 man/piadazip.1 /usr/local/share/man/man1/
+sudo mandb
+.fi
+.SH AUTORE
+Antonio Fasanella
+.SH VEDERE ANCHE
+.BR gzip (1),
+.BR tar (1),
+.BR zip (1),
+.BR bzip2 (1)

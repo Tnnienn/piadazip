@@ -8,6 +8,20 @@ Compressione in due stadi: **LZSS** (finestra scorrevole fino a 32 KB) seguito d
 
 ## Installazione
 
+### Script (Linux / macOS)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Tnnienn/piadazip/main/install.sh | sh
+```
+
+### Script (Windows — PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/Tnnienn/piadazip/main/install.ps1 | iex
+```
+
+Oppure scarica il binario direttamente dalla [pagina delle release](https://github.com/Tnnienn/piadazip/releases/latest).
+
 ### Da sorgente (richiede Rust ≥ 1.85)
 
 ```bash

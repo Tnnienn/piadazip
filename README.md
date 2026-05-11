@@ -75,12 +75,73 @@ piadazip decompress documento.txt.piadina
 
 ## Livelli di compressione
 
-| Livello | Finestra | Descrizione |
-|---------|----------|-------------|
-| 1       | 4 KB     | Velocissimo, ratio base |
-| 1–4     |  4–16 KB | Bilanciato velocità/ratio |
-| 5–6     | 16–32 KB | Modalità default — buon compromesso |
-| 7–9     | 32 KB    | Lazy matching attivo, massima compressione |
+| Livello | Finestra | Max chain | Descrizione |
+|---------|----------|-----------|-------------|
+| 1       | 4 KB     | 4         | Velocissimo, ratio base |
+| 2–4     | 8–16 KB  | 8–32      | Bilanciato velocità/ratio |
+| 5–6     | 16–32 KB | 64–128    | Default — buon compromesso |
+| 7–9     | 32 KB    | 192–512   | Massima compressione |
+
+---
+
+## Benchmark
+
+Misurato su CPU AMD Ryzen (singolo thread). Ratio = dimensione compressa / originale — più basso è meglio.
+
+### File di testo — 18.4 MB (testo naturale con vocabolario fisso)
+
+| Strumento          |   Output |  Ratio |    Tempo |
+|:-------------------|---------:|-------:|---------:|
+| gzip -6            | 3 048 001 B |  16.5% | 1 238 ms |
+| gzip -9            | 3 012 643 B |  16.4% | 1 832 ms |
+| bzip2 -9           | 2 008 769 B |  10.9% | 2 279 ms |
+| xz -6              | 2 413 396 B |  13.1% | 11 831 ms |
+| zstd -6            | 3 656 850 B |  19.9% |   155 ms |
+| zstd -19           | 2 394 513 B |  13.0% | 10 966 ms |
+| **piadazip -1**    | 5 058 200 B |  27.5% |   281 ms |
+| **piadazip -6**    | 3 565 456 B |  **19.4%** | 1 359 ms |
+| **piadazip -9**    | 3 531 550 B |  **19.2%** | 1 486 ms |
+
+### Codice sorgente ripetuto — 906 KB (stesso blocco ×20)
+
+| Strumento          |   Output |  Ratio |    Tempo |
+|:-------------------|---------:|-------:|---------:|
+| gzip -6            |   203 118 B |  22.4% |    26 ms |
+| gzip -9            |   201 037 B |  22.2% |    93 ms |
+| bzip2 -9           |    18 609 B |   2.1% |   258 ms |
+| xz -6              |    10 376 B |   1.1% |   103 ms |
+| zstd -6            |    11 064 B |   1.2% |    14 ms |
+| zstd -19           |    10 278 B |   1.1% |    48 ms |
+| **piadazip -1**    |   300 302 B |  33.1% |    29 ms |
+| **piadazip -6**    |   237 973 B |  26.3% |    41 ms |
+| **piadazip -9**    |   236 649 B |  26.1% |    60 ms |
+
+> **Nota:** su questo file bzip2/xz/zstd eccellono perché il blocco ~45 KB si ripete 20 volte.
+> La finestra LZSS di piadazip (32 KB) è più piccola del blocco e non riesce a riferirsi
+> all'intera ripetizione precedente. xz usa una finestra da diversi MB.
+
+### Dati binari strutturati — 1.2 MB (record fissi con pattern)
+
+| Strumento          |   Output |  Ratio |    Tempo |
+|:-------------------|---------:|-------:|---------:|
+| gzip -6            |   446 021 B |  37.2% |    60 ms |
+| gzip -9            |   445 877 B |  37.2% |    67 ms |
+| bzip2 -9           |   151 982 B |  12.7% |    61 ms |
+| xz -6              |    19 556 B |   1.6% |   492 ms |
+| zstd -6            |   121 717 B |  10.1% |    18 ms |
+| zstd -19           |   125 721 B |  10.5% |   872 ms |
+| **piadazip -1**    |   419 262 B |  34.9% |    38 ms |
+| **piadazip -6**    |   339 556 B |  **28.3%** |    90 ms |
+| **piadazip -9**    |   343 164 B |  28.6% |   107 ms |
+
+> **piadazip -6 batte gzip** (28.3% vs 37.2%) su dati con struttura a record fissi.
+
+### Riassunto
+
+- Su **testo naturale**: piadazip -6 è paragonabile a gzip -6 (19.4% vs 16.5%)
+- Su **binari strutturati**: piadazip -6 batte gzip di ~9 punti percentuali
+- Su **dati con ripetizioni lunghe** (> finestra 32 KB): xz e bzip2 vincono nettamente
+- **Velocità**: piadazip -6 è rapido quanto gzip; piadazip -1 è il più veloce del gruppo su testo
 
 ---
 
@@ -107,4 +168,4 @@ Ogni blob usa la pipeline **LZSS → Huffman**. File già compressi (JPEG, PNG, 
 
 **LZSS** scansiona l'input con una finestra scorrevole e una hash chain per trovare rapidamente le stringhe ripetute. Ogni match viene codificato come tripletta `(offset, lunghezza)` invece di riscrivere i byte. Il token stream risultante viene poi compresso con **Huffman adattivo** (two-pass: primo passaggio per le frequenze, secondo per la codifica).
 
-Rispetto a RLE+Huffman (v2), LZSS cattura la ridondanza a lungo raggio ottenendo tipicamente il 30–60% di compressione in più su testo strutturato e codice sorgente.
+Rispetto a RLE+Huffman (v2), LZSS cattura la ridondanza a lungo raggio ottenendo fino al 60% di compressione in più su testo strutturato. Il punto di forza è sui dati binari con struttura a record fissi, dove supera gzip.

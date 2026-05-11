@@ -24,9 +24,9 @@ impl LzssConfig {
             4 => Self { window_bits: 14, max_chain: 32,  lazy: false },
             5 => Self { window_bits: 14, max_chain: 64,  lazy: false },
             6 => Self { window_bits: 15, max_chain: 128, lazy: false },
-            7 => Self { window_bits: 15, max_chain: 128, lazy: true  },
-            8 => Self { window_bits: 15, max_chain: 256, lazy: true  },
-            _ => Self { window_bits: 15, max_chain: 512, lazy: true  },
+            7 => Self { window_bits: 15, max_chain: 192, lazy: false },
+            8 => Self { window_bits: 15, max_chain: 256, lazy: false },
+            _ => Self { window_bits: 15, max_chain: 512, lazy: false },
         }
     }
 
@@ -79,7 +79,7 @@ impl HashChain {
         let limit = if pos >= self.window { pos - self.window } else { 0 };
 
         let mut best_len = prev_match_len;
-        let mut best_pos = 0usize;
+        let mut best_pos = usize::MAX; // sentinel: nessun match trovato
         let mut candidate = self.head[h];
         let mut chain_count = 0u32;
 
@@ -113,7 +113,7 @@ impl HashChain {
             chain_count += 1;
         }
 
-        if best_len >= MIN_MATCH {
+        if best_len >= MIN_MATCH && best_pos != usize::MAX {
             Some((pos - best_pos, best_len))
         } else {
             None
